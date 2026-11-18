@@ -35,6 +35,22 @@ export interface View {
   grid: boolean;
   wire: boolean;
 }
+export interface BlockingState {
+  /** 当前阻挡所针对的折痕。 */
+  creaseId: string;
+  /** 首次接触处的可复现角度。 */
+  angle: number;
+  /** 造成阻挡的静止纸面 id（用于画面与折痕列表高亮）。 */
+  faces: string[];
+  /** 接触纸面对（与 faces 同源，便于列表与提示复用）。 */
+  pairs: [string, string][];
+  /** 接触点的世界坐标（用于画面精确标记）。 */
+  points: Vec3[];
+  /** 面向用户的阻挡说明。 */
+  message: string;
+  /** 自动播放受阻时，对应的是第几步（手动拖动时为 null）。 */
+  stepIndex: number | null;
+}
 export interface Document {
   paper: Paper;
   front: string;
@@ -48,6 +64,8 @@ export interface Document {
   playing: boolean;
   speed: number;
   view: View;
+  /** 最近一次碰撞引导状态；无阻挡时为 null。 */
+  blocking: BlockingState | null;
 }
 export interface PoseFace {
   id: string;

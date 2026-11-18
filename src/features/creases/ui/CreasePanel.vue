@@ -14,7 +14,10 @@ defineEmits<{ select: [id: string] }>();
       v-for="(c, i) in doc.paper.creases"
       :key="c.id"
       class="crease-row"
-      :class="{ active: doc.selected === c.id }"
+      :class="{
+        active: doc.selected === c.id,
+        blocked: doc.blocking?.creaseId === c.id,
+      }"
       @click="$emit('select', c.id)"
     >
       <span class="crease-num">0{{ i + 1 }}</span
@@ -23,8 +26,12 @@ defineEmits<{ select: [id: string] }>();
         ><small
           >{{ (doc.angles[c.id] ?? 0).toFixed(0) }}° ·
           {{ (doc.directions[c.id] ?? 1) > 0 ? "谷折" : "山折" }}</small
-        ><i :style="{ width: creaseProgress(doc, c.id) + '%' }"></i></span
-      ><span>↗</span>
+        ><i :style="{ width: creaseProgress(doc, c.id) + '%' }"></i
+      ></span>
+      <span v-if="doc.blocking?.creaseId === c.id" class="block-flag" title="发生碰撞阻挡"
+        >⛔</span
+      >
+      <span v-else>↗</span>
     </button>
     <div class="tip">
       <span>⌁</span>

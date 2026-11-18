@@ -37,11 +37,19 @@ defineEmits<{ seek: [n: number]; play: []; capture: [] }>();
       <button
         v-for="(s, i) in doc.steps"
         :key="s.id"
-        :class="{ current: doc.step === i, done: doc.step > i }"
+        :class="{
+          current: doc.step === i,
+          done: doc.step > i,
+          blocked: doc.blocking?.stepIndex === i,
+        }"
         @click="$emit('seek', i)"
       >
         <span class="step-dot">{{
-          doc.step > i ? "✓" : String(i + 1).padStart(2, "0")
+          doc.blocking?.stepIndex === i
+            ? "!"
+            : doc.step > i
+              ? "✓"
+              : String(i + 1).padStart(2, "0")
         }}</span><span
           ><b>{{ s.title }}</b
           ><small>{{
@@ -54,5 +62,8 @@ defineEmits<{ seek: [n: number]; play: []; capture: [] }>();
         ><i v-if="i < doc.steps.length - 1"></i>
       </button>
     </div>
+    <p v-if="doc.blocking" class="blocking-note" role="alert">
+      ⛔ {{ doc.blocking.message }}
+    </p>
   </section>
 </template>

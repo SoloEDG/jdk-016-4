@@ -18,6 +18,7 @@ const svg = ref<SVGSVGElement>();
 let drag = false,
   lastX = 0,
   lastY = 0;
+const blockingFaces = computed(() => new Set(props.doc.blocking?.faces ?? []));
 const faces = computed(() =>
   props.pose
     .map((f) => ({
@@ -26,6 +27,7 @@ const faces = computed(() =>
         f.points.reduce((s, p) => s + project(p, props.doc.view).z, 0) /
         f.points.length,
       back: cameraPoint(f.normal, props.doc.view)[2] > 0,
+      blocked: blockingFaces.value.has(f.id),
     }))
     .sort((a, b) => a.depth - b.depth),
 );
@@ -101,10 +103,11 @@ function move(e: PointerEvent) {
         <polygon
           :points="polygon(f.points, doc.view)"
           :fill="f.back ? doc.back : doc.front"
-          stroke="#785945"
-          stroke-opacity=".35"
-          stroke-width="1.2"
+          :stroke="f.blocked ? '#d64545' : '#785945'"
+          :stroke-opacity="f.blocked ? 0.95 : 0.35"
+          :stroke-width="f.blocked ? 2.4 : 1.2"
           stroke-linejoin="round"
+          :class="{ 'blocked-face': f.blocked }"
         />
         <polygon
           :points="polygon(f.points, doc.view)"
@@ -115,6 +118,13 @@ function move(e: PointerEvent) {
           v-if="doc.texture !== 'plain'"
           :points="polygon(f.points, doc.view)"
           :fill="'url(#' + doc.texture + ')'"
+        />
+        <polygon
+          v-if="f.blocked"
+          :points="polygon(f.points, doc.view)"
+          fill="#e5484d"
+          opacity=".18"
+          class="blocked-overlay"
         />
       </g>
       <g v-if="doc.view.wire">
@@ -137,8 +147,14 @@ function move(e: PointerEvent) {
             :y1="project(h.a, doc.view).y"
             :x2="project(h.b, doc.view).x"
             :y2="project(h.b, doc.view).y"
-            :stroke="h.id === doc.selected ? '#fff8d9' : '#746f57'"
-            :stroke-width="h.id === doc.selected ? 2.5 : 1.2"
+            :stroke="
+              h.id === doc.blocking?.creaseId
+                ? '#e5484d'
+                : h.id === doc.selected
+                  ? '#fff8d9'
+                  : '#746f57'
+            "
+            :stroke-width="h.id === doc.blocking?.creaseId ? 2.8 : h.id === doc.selected ? 2.5 : 1.2"
             stroke-dasharray="5 4"
           />
           <circle
@@ -158,6 +174,27 @@ function move(e: PointerEvent) {
           </text>
         </g>
       </g>
+      <g v-if="doc.blocking" class="contact-marker">
+        <circle
+          v-for="(p, i) in doc.blocking.points"
+          :key="i"
+          :cx="project(p, doc.view).x"
+          :cy="project(p, doc.view).y"
+          r="5.5"
+          fill="#e5484d"
+          fill-opacity=".25"
+          stroke="#d64545"
+          stroke-width="1.6"
+        />
+        <circle
+          v-for="(p, i) in doc.blocking.points"
+          :key="'d' + i"
+          :cx="project(p, doc.view).x"
+          :cy="project(p, doc.view).y"
+          r="2.2"
+          fill="#d64545"
+        />
+      </g>
       <g transform="translate(58,475)" stroke-width="1.5">
         <path d="M0 0l28 12" stroke="#be806c" />
         <path d="M0 0v-30" stroke="#839b72" />
@@ -167,6 +204,14 @@ function move(e: PointerEvent) {
         <text x="-28" y="23" font-size="10" fill="#839eae">Z</text>
       </g>
     </svg>
+    <div v-if="doc.blocking" class="blocking-banner" role="alert">
+      <span class="blocking-dot"></span>
+      <div>
+        <b>碰撞引导 · 已停在首次接触位置</b>
+        <p>{{ doc.blocking.message }}</p>
+      </div>
+      <small>{{ doc.blocking.angle.toFixed(0) }}°</small>
+    </div>
     <div class="scene-caption">
       <span>拖动旋转视角 · 滚轮缩放</span
       ><b>{{ Math.round(doc.view.zoom * 100) }}%</b>
